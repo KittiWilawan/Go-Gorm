@@ -20,7 +20,6 @@ func createProductDB(db *gorm.DB, name string, price float64, quantity int, cate
 		return nil, errors.New("จำนวนสต็อกต้องไม่ติดลบ (quantity cannot be negative)")
 	}
 
-	// ตรวจสอบว่ามี Category อยู่จริง
 	var category Category
 	if err := db.First(&category, categoryID).Error; err != nil {
 		return nil, fmt.Errorf("ไม่พบประเภทสินค้า ID %d: %w", categoryID, err)
@@ -41,7 +40,6 @@ func createProductDB(db *gorm.DB, name string, price float64, quantity int, cate
 	return product, nil
 }
 
-// getAllProductsDB ค้นหาสินค้าทั้งหมด
 func getAllProductsDB(db *gorm.DB) ([]Product, error) {
 	var products []Product
 	if err := db.Preload("Category").Find(&products).Error; err != nil {
@@ -50,7 +48,6 @@ func getAllProductsDB(db *gorm.DB) ([]Product, error) {
 	return products, nil
 }
 
-// getProductByIDDB ค้นหาสินค้าจาก ID
 func getProductByIDDB(db *gorm.DB, id uint) (*Product, error) {
 	var product Product
 	if err := db.Preload("Category").First(&product, id).Error; err != nil {
@@ -59,7 +56,6 @@ func getProductByIDDB(db *gorm.DB, id uint) (*Product, error) {
 	return &product, nil
 }
 
-// getProductByNameDB ค้นหาชื่อบางส่วนด้วย LIKE
 func getProductByNameDB(db *gorm.DB, keyword string) ([]Product, error) {
 	var products []Product
 	if err := db.Preload("Category").Where("name LIKE ?", "%"+keyword+"%").Find(&products).Error; err != nil {
@@ -68,7 +64,6 @@ func getProductByNameDB(db *gorm.DB, keyword string) ([]Product, error) {
 	return products, nil
 }
 
-// getProductsByCategoryDB ค้นหาสินค้าตาม CategoryID
 func getProductsByCategoryDB(db *gorm.DB, categoryID uint) ([]Product, error) {
 	var products []Product
 	if err := db.Preload("Category").Where("category_id = ?", categoryID).Find(&products).Error; err != nil {
@@ -77,7 +72,6 @@ func getProductsByCategoryDB(db *gorm.DB, categoryID uint) ([]Product, error) {
 	return products, nil
 }
 
-// getProductsByPriceRangeDB ค้นหาสินค้าตามช่วงราคา Min–Max
 func getProductsByPriceRangeDB(db *gorm.DB, minPrice float64, maxPrice float64) ([]Product, error) {
 	var products []Product
 	if err := db.Preload("Category").Where("price >= ? AND price <= ?", minPrice, maxPrice).Find(&products).Error; err != nil {
@@ -86,7 +80,6 @@ func getProductsByPriceRangeDB(db *gorm.DB, minPrice float64, maxPrice float64) 
 	return products, nil
 }
 
-// getProductsLowStockDB ค้นหาสินค้าที่สต็อกน้อยกว่าค่ากำหนด
 func getProductsLowStockDB(db *gorm.DB, threshold int) ([]Product, error) {
 	var products []Product
 	if err := db.Preload("Category").Where("quantity < ?", threshold).Find(&products).Error; err != nil {
@@ -95,7 +88,6 @@ func getProductsLowStockDB(db *gorm.DB, threshold int) ([]Product, error) {
 	return products, nil
 }
 
-// getProductsByCategoryAndPriceDB ค้นหาตามประเภทและช่วงราคา
 func getProductsByCategoryAndPriceDB(db *gorm.DB, categoryID uint, minPrice float64, maxPrice float64) ([]Product, error) {
 	var products []Product
 	if err := db.Preload("Category").Where("category_id = ? AND price >= ? AND price <= ?", categoryID, minPrice, maxPrice).Find(&products).Error; err != nil {
@@ -104,7 +96,6 @@ func getProductsByCategoryAndPriceDB(db *gorm.DB, categoryID uint, minPrice floa
 	return products, nil
 }
 
-// getProductsSortedByPriceDB เรียงราคา ASC/DESC
 func getProductsSortedByPriceDB(db *gorm.DB, sortOrder string) ([]Product, error) {
 	upperOrder := strings.ToUpper(strings.TrimSpace(sortOrder))
 	if upperOrder != "ASC" && upperOrder != "DESC" {
@@ -118,7 +109,6 @@ func getProductsSortedByPriceDB(db *gorm.DB, sortOrder string) ([]Product, error
 	return products, nil
 }
 
-// getTopExpensiveProductsDB สินค้าแพงที่สุด N รายการ
 func getTopExpensiveProductsDB(db *gorm.DB, n int) ([]Product, error) {
 	if n <= 0 {
 		n = 3
@@ -130,7 +120,6 @@ func getTopExpensiveProductsDB(db *gorm.DB, n int) ([]Product, error) {
 	return products, nil
 }
 
-// updateProductByIDDB แก้ไขสินค้าตาม ID
 func updateProductByIDDB(db *gorm.DB, id uint, name string, price float64, quantity int, categoryID uint) (*Product, error) {
 	var product Product
 	if err := db.First(&product, id).Error; err != nil {
@@ -166,7 +155,6 @@ func updateProductByIDDB(db *gorm.DB, id uint, name string, price float64, quant
 	return &product, nil
 }
 
-// updateProductPriceDB แก้ไขราคา
 func updateProductPriceDB(db *gorm.DB, id uint, newPrice float64) (*Product, error) {
 	if newPrice < 0 {
 		return nil, errors.New("ราคาต้องไม่ติดลบ (price cannot be negative)")
@@ -185,7 +173,6 @@ func updateProductPriceDB(db *gorm.DB, id uint, newPrice float64) (*Product, err
 	return &product, nil
 }
 
-// updateProductStockDB เพิ่ม/ลดสต็อก (ส่งค่า quantityChange เป็นบวกเพื่อเพิ่ม หรือลบเพื่อลด)
 func updateProductStockDB(db *gorm.DB, id uint, quantityChange int) (*Product, error) {
 	var product Product
 	if err := db.First(&product, id).Error; err != nil {
@@ -205,7 +192,6 @@ func updateProductStockDB(db *gorm.DB, id uint, quantityChange int) (*Product, e
 	return &product, nil
 }
 
-// softDeleteProductDB ทำ Soft Delete สินค้า
 func softDeleteProductDB(db *gorm.DB, id uint) error {
 	var product Product
 	if err := db.First(&product, id).Error; err != nil {
@@ -218,15 +204,12 @@ func softDeleteProductDB(db *gorm.DB, id uint) error {
 	return nil
 }
 
-// hardDeleteProductDB ลบสินค้าถาวร
-// กติกาส่วนที่ 5: สินค้าที่อยู่ในประวัติคำสั่งซื้อ ห้ามลบถาวร เพื่อรักษาความสมบูรณ์ของประวัติคำสั่งซื้อ
 func hardDeleteProductDB(db *gorm.DB, id uint) error {
 	var product Product
 	if err := db.Unscoped().First(&product, id).Error; err != nil {
 		return fmt.Errorf("product ID %d not found: %w", id, err)
 	}
 
-	// ตรวจสอบประวัติคำสั่งซื้อ
 	var orderCount int64
 	if err := db.Model(&Order{}).Where("product_id = ?", id).Count(&orderCount).Error; err != nil {
 		return fmt.Errorf("failed to check orders for product ID %d: %w", id, err)
@@ -242,7 +225,6 @@ func hardDeleteProductDB(db *gorm.DB, id uint) error {
 	return nil
 }
 
-// getDeletedProductsDB ดึงสินค้าที่ถูก Soft Delete
 func getDeletedProductsDB(db *gorm.DB) ([]Product, error) {
 	var products []Product
 	if err := db.Unscoped().Where("deleted_at IS NOT NULL").Preload("Category").Find(&products).Error; err != nil {
@@ -251,7 +233,6 @@ func getDeletedProductsDB(db *gorm.DB) ([]Product, error) {
 	return products, nil
 }
 
-// restoreProductDB กู้คืนสินค้า
 func restoreProductDB(db *gorm.DB, id uint) error {
 	var product Product
 	if err := db.Unscoped().Where("id = ? AND deleted_at IS NOT NULL", id).First(&product).Error; err != nil {

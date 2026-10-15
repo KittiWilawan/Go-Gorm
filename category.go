@@ -8,7 +8,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// createCategoryDB เพิ่มประเภทสินค้า
 func createCategoryDB(db *gorm.DB, name string, description string) (*Category, error) {
 	name = strings.TrimSpace(name)
 	if name == "" {
@@ -27,15 +26,12 @@ func createCategoryDB(db *gorm.DB, name string, description string) (*Category, 
 	return category, nil
 }
 
-// deleteCategoryByIDDB ลบประเภทสินค้า
-// เงื่อนไข: ตรวจสอบความสัมพันธ์ก่อนลบ - ห้ามลบประเภทสินค้าที่ยังมีสินค้า
 func deleteCategoryByIDDB(db *gorm.DB, id uint) error {
 	var category Category
 	if err := db.First(&category, id).Error; err != nil {
 		return fmt.Errorf("category ID %d not found: %w", id, err)
 	}
 
-	// ตรวจสอบสินค้าที่อยู่ในหมวดหมู่นี้
 	var productCount int64
 	if err := db.Model(&Product{}).Where("category_id = ?", id).Count(&productCount).Error; err != nil {
 		return fmt.Errorf("failed to check products for category: %w", err)

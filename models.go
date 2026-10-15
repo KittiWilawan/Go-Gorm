@@ -10,7 +10,6 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Category model represents product categories
 type Category struct {
 	gorm.Model
 	Name        string    `gorm:"type:varchar(100);not null" json:"name"`
@@ -18,7 +17,6 @@ type Category struct {
 	Products    []Product `gorm:"foreignKey:CategoryID" json:"products,omitempty"`
 }
 
-// Product model represents items in store
 type Product struct {
 	gorm.Model
 	Name       string   `gorm:"type:varchar(150);not null" json:"name"`
@@ -29,7 +27,6 @@ type Product struct {
 	Orders     []Order  `gorm:"foreignKey:ProductID" json:"orders,omitempty"`
 }
 
-// Customer model represents store customers
 type Customer struct {
 	gorm.Model
 	Name   string  `gorm:"type:varchar(100);not null" json:"name"`
@@ -38,7 +35,6 @@ type Customer struct {
 	Orders []Order `gorm:"foreignKey:CustomerID" json:"orders,omitempty"`
 }
 
-// Order model represents customer purchase orders
 type Order struct {
 	gorm.Model
 	CustomerID uint     `gorm:"not null" json:"customer_id"`
@@ -47,7 +43,7 @@ type Order struct {
 	Product    Product  `gorm:"foreignKey:ProductID" json:"product,omitempty"`
 	Quantity   int      `gorm:"not null" json:"quantity"`
 	TotalPrice float64  `gorm:"type:decimal(10,2);not null" json:"total_price"`
-	Status     string   `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"` // Pending, Completed, Cancelled
+	Status     string   `gorm:"type:varchar(20);not null;default:'Pending'" json:"status"`
 }
 
 func getEnv(key, fallback string) string {
@@ -57,7 +53,6 @@ func getEnv(key, fallback string) string {
 	return fallback
 }
 
-// InitDB connects to MySQL, creates store_db if not exists, and performs AutoMigrate
 func InitDB() (*gorm.DB, error) {
 	user := getEnv("DB_USER", "root")
 	pass := getEnv("DB_PASS", "")
@@ -65,7 +60,6 @@ func InitDB() (*gorm.DB, error) {
 	port := getEnv("DB_PORT", "3306")
 	dbname := getEnv("DB_NAME", "store_db")
 
-	// 1. Connect without db to ensure database exists
 	dsnWithoutDB := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8mb4&parseTime=True&loc=Local",
 		user, pass, host, port)
 	initDB, err := gorm.Open(mysql.Open(dsnWithoutDB), &gorm.Config{
@@ -85,7 +79,6 @@ func InitDB() (*gorm.DB, error) {
 		sqlDB.Close()
 	}
 
-	// 2. Connect to the store_db
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		user, pass, host, port, dbname)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
@@ -95,7 +88,6 @@ func InitDB() (*gorm.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database %s: %w", dbname, err)
 	}
 
-	// 3. Auto Migrate all 4 models
 	if err := db.AutoMigrate(&Category{}, &Product{}, &Customer{}, &Order{}); err != nil {
 		return nil, fmt.Errorf("auto migration failed: %w", err)
 	}

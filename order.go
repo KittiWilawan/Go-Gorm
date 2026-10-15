@@ -9,7 +9,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// Allowed order statuses
 const (
 	StatusPending   = "Pending"
 	StatusCompleted = "Completed"
@@ -30,9 +29,6 @@ func validateStatus(status string) (string, error) {
 	}
 }
 
-// createOrderDB เพิ่มคำสั่งซื้อ
-// ต้องตรวจสอบลูกค้าและสินค้า ตรวจสอบสต็อก คำนวณ TotalPrice = Price * Quantity
-// ลดสต็อก และใช้ Transaction ให้การเพิ่มคำสั่งซื้อกับการลดสต็อกสำเร็จหรือยกเลิกพร้อมกัน
 func createOrderDB(db *gorm.DB, customerID uint, productID uint, quantity int) (*Order, error) {
 	if quantity <= 0 {
 		return nil, errors.New("จำนวนสินค้าต้องมากกว่า 0")
@@ -41,34 +37,28 @@ func createOrderDB(db *gorm.DB, customerID uint, productID uint, quantity int) (
 	var newOrder Order
 
 	err := db.Transaction(func(tx *gorm.DB) error {
-		// 1. ตรวจสอบข้อมูลลูกค้า
 		var customer Customer
 		if err := tx.First(&customer, customerID).Error; err != nil {
 			return fmt.Errorf("ไม่พบข้อมูลลูกค้า ID %d: %w", customerID, err)
 		}
 
-		// 2. ตรวจสอบข้อมูลสินค้า
 		var product Product
 		if err := tx.First(&product, productID).Error; err != nil {
 			return fmt.Errorf("ไม่พบข้อมูลสินค้า ID %d: %w", productID, err)
 		}
 
-		// 3. ตรวจสอบสต็อก
 		if product.Quantity < quantity {
 			return fmt.Errorf("สินค้า '%s' มีสต็อกไม่เพียงพอ (คงเหลือ %d ชิ้น, ต้องการสั่งซื้อ %d ชิ้น)",
 				product.Name, product.Quantity, quantity)
 		}
 
-		// 4. คำนวณ TotalPrice = Price * Quantity
 		totalPrice := product.Price * float64(quantity)
 
-		// 5. ลดสต็อกสินค้า
 		product.Quantity -= quantity
 		if err := tx.Save(&product).Error; err != nil {
 			return fmt.Errorf("failed to deduct stock: %w", err)
 		}
 
-		// 6. บันทึกคำสั่งซื้อ
 		newOrder = Order{
 			CustomerID: customerID,
 			ProductID:  productID,
@@ -88,12 +78,10 @@ func createOrderDB(db *gorm.DB, customerID uint, productID uint, quantity int) (
 		return nil, err
 	}
 
-	// Preload Customer and Product
 	db.Preload("Customer").Preload("Product").Preload("Product.Category").First(&newOrder, newOrder.ID)
 	return &newOrder, nil
 }
 
-// getOrdersByCustomerDB ดึงคำสั่งซื้อของลูกค้า
 func getOrdersByCustomerDB(db *gorm.DB, customerID uint) ([]Order, error) {
 	var orders []Order
 	if err := db.Preload("Customer").Preload("Product").Where("customer_id = ?", customerID).Find(&orders).Error; err != nil {
@@ -102,7 +90,6 @@ func getOrdersByCustomerDB(db *gorm.DB, customerID uint) ([]Order, error) {
 	return orders, nil
 }
 
-// getOrdersByStatusDB ดึงคำสั่งซื้อตามสถานะ (Pending / Completed / Cancelled)
 func getOrdersByStatusDB(db *gorm.DB, status string) ([]Order, error) {
 	validStatus, err := validateStatus(status)
 	if err != nil {
@@ -116,7 +103,6 @@ func getOrdersByStatusDB(db *gorm.DB, status string) ([]Order, error) {
 	return orders, nil
 }
 
-// getOrdersByDateRangeDB ดึงคำสั่งซื้อตามช่วงวันที่
 func getOrdersByDateRangeDB(db *gorm.DB, startDate time.Time, endDate time.Time) ([]Order, error) {
 	var orders []Order
 	if err := db.Preload("Customer").Preload("Product").Where("created_at >= ? AND created_at <= ?", startDate, endDate).Find(&orders).Error; err != nil {
@@ -126,7 +112,6 @@ func getOrdersByDateRangeDB(db *gorm.DB, startDate time.Time, endDate time.Time)
 	return orders, nil
 }
 
-// getOrdersWithDetailsDB ดึงคำสั่งซื้อพร้อมข้อมูลลูกค้าและสินค้า
 func getOrdersWithDetailsDB(db *gorm.DB) ([]Order, error) {
 	var orders []Order
 	if err := db.Preload("Customer").Preload("Product").Preload("Product.Category").Find(&orders).Error; err != nil {
@@ -135,8 +120,6 @@ func getOrdersWithDetailsDB(db *gorm.DB) ([]Order, error) {
 	return orders, nil
 }
 
-// updateOrderStatusDB เปลี่ยนสถานะคำสั่งซื้อ
-// เงื่อนไข: สถานะต้องเป็น Pending, Completed หรือ Cancelled เท่านั้น
 func updateOrderStatusDB(db *gorm.DB, id uint, status string) (*Order, error) {
 	validStatus, err := validateStatus(status)
 	if err != nil {
